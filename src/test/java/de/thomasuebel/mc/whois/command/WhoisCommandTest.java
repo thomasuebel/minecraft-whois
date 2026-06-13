@@ -48,10 +48,11 @@ class WhoisCommandTest {
     private static final class FakeLookup implements OnlinePlayerLookup {
         String name;
         UUID uuid;
+        List<String> online = List.of();
         @Override public Optional<UUID> findByExactName(String n) {
             return name != null && name.equals(n) ? Optional.of(uuid) : Optional.empty();
         }
-        @Override public List<String> onlineNames() { return List.of(); }
+        @Override public List<String> onlineNames() { return online; }
     }
 
     @BeforeEach
@@ -66,7 +67,7 @@ class WhoisCommandTest {
                 new StoreSerializer(), scheduler, logger);
         lookup = new FakeLookup();
         resolver = new NameResolver(lookup);
-        command = new WhoisCommand(store, resolver, renderer);
+        command = new WhoisCommand(store, resolver, lookup, renderer);
 
         sender = mock(CommandSender.class);
         when(sender.hasPermission(WhoisCommand.PERMISSION)).thenReturn(true);
@@ -222,10 +223,81 @@ class WhoisCommandTest {
     @Test
     void constructorRejectsNullArgs() {
         assertThrows(NullPointerException.class,
-                () -> new WhoisCommand(null, resolver, renderer));
+                () -> new WhoisCommand(null, resolver, lookup, renderer));
         assertThrows(NullPointerException.class,
-                () -> new WhoisCommand(store, null, renderer));
+                () -> new WhoisCommand(store, null, lookup, renderer));
         assertThrows(NullPointerException.class,
-                () -> new WhoisCommand(store, resolver, null));
+                () -> new WhoisCommand(store, resolver, null, renderer));
+        assertThrows(NullPointerException.class,
+                () -> new WhoisCommand(store, resolver, lookup, null));
+    }
+
+    @Test
+    void tabCompletionWithoutPermissionReturnsEmpty() {
+        when(sender.hasPermission(WhoisCommand.PERMISSION)).thenReturn(false);
+        lookup.online = List.of("Steve", "Bob");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois", new String[]{""});
+
+        assertEquals(List.of(), completions);
+    }
+
+    @Test
+    void tabCompletionOfFirstArgIncludesSetAndOnlineNames() {
+        lookup.online = List.of("Steve", "Bob");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois", new String[]{""});
+
+        assertTrue(completions.contains("set"));
+        assertTrue(completions.contains("Steve"));
+        assertTrue(completions.contains("Bob"));
+    }
+
+    @Test
+    void tabCompletionFiltersByPrefix() {
+        lookup.online = List.of("Steve", "Bob", "Steven");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois", new String[]{"Ste"});
+
+        assertEquals(List.of("Steve", "Steven"), completions);
+    }
+
+    @Test
+    void tabCompletionPrefixIsCaseInsensitive() {
+        lookup.online = List.of("Steve", "Bob");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois", new String[]{"ste"});
+
+        assertEquals(List.of("Steve"), completions);
+    }
+
+    @Test
+    void tabCompletionOfSecondArgAfterSetReturnsOnlineNames() {
+        lookup.online = List.of("Steve", "Bob");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois",
+                new String[]{"set", "Bo"});
+
+        assertEquals(List.of("Bob"), completions);
+    }
+
+    @Test
+    void tabCompletionOfSecondArgWithoutSetReturnsEmpty() {
+        lookup.online = List.of("Steve", "Bob");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois",
+                new String[]{"Steve", "Bo"});
+
+        assertEquals(List.of(), completions);
+    }
+
+    @Test
+    void tabCompletionBeyondTwoArgsReturnsEmpty() {
+        lookup.online = List.of("Steve");
+
+        List<String> completions = command.onTabComplete(sender, bukkitCommand, "whois",
+                new String[]{"set", "Steve", "Max"});
+
+        assertEquals(List.of(), completions);
     }
 }

@@ -1,28 +1,39 @@
 package de.thomasuebel.mc.whois.command;
 
 import de.thomasuebel.mc.whois.lookup.NameResolver;
+import de.thomasuebel.mc.whois.lookup.OnlinePlayerLookup;
 import de.thomasuebel.mc.whois.model.PlayerRecord;
 import de.thomasuebel.mc.whois.model.PlayerStore;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public final class WhoisCommand implements CommandExecutor {
+public final class WhoisCommand implements CommandExecutor, TabCompleter {
 
     public static final String PERMISSION = "whois.admin";
+    private static final String SET = "set";
 
     private final PlayerStore store;
     private final NameResolver resolver;
+    private final OnlinePlayerLookup onlineLookup;
     private final MessageRenderer renderer;
 
-    public WhoisCommand(PlayerStore store, NameResolver resolver, MessageRenderer renderer) {
+    public WhoisCommand(PlayerStore store,
+                        NameResolver resolver,
+                        OnlinePlayerLookup onlineLookup,
+                        MessageRenderer renderer) {
         this.store = Objects.requireNonNull(store, "store");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
+        this.onlineLookup = Objects.requireNonNull(onlineLookup, "onlineLookup");
         this.renderer = Objects.requireNonNull(renderer, "renderer");
     }
 
@@ -36,10 +47,34 @@ public final class WhoisCommand implements CommandExecutor {
             sender.sendMessage(renderer.usage());
             return true;
         }
-        if (args[0].equalsIgnoreCase("set")) {
+        if (args[0].equalsIgnoreCase(SET)) {
             return handleSet(sender, args);
         }
         return handleLookup(sender, args[0]);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!sender.hasPermission(PERMISSION)) {
+            return List.of();
+        }
+        if (args.length == 1) {
+            List<String> candidates = new ArrayList<>();
+            candidates.add(SET);
+            candidates.addAll(onlineLookup.onlineNames());
+            return filterPrefix(candidates, args[0]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase(SET)) {
+            return filterPrefix(onlineLookup.onlineNames(), args[1]);
+        }
+        return List.of();
+    }
+
+    private static List<String> filterPrefix(List<String> all, String prefix) {
+        String lower = prefix.toLowerCase(Locale.ROOT);
+        return all.stream()
+                .filter(s -> s.toLowerCase(Locale.ROOT).startsWith(lower))
+                .toList();
     }
 
     private boolean handleSet(CommandSender sender, String[] args) {
