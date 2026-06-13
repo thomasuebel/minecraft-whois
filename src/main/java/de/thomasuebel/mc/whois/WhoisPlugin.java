@@ -1,5 +1,6 @@
 package de.thomasuebel.mc.whois;
 
+import de.thomasuebel.mc.whois.bootstrap.UserCacheImporter;
 import de.thomasuebel.mc.whois.command.MessageRenderer;
 import de.thomasuebel.mc.whois.command.WhoisCommand;
 import de.thomasuebel.mc.whois.listener.JoinListener;
@@ -33,8 +34,16 @@ public final class WhoisPlugin extends JavaPlugin {
                 snapshot -> file.writeAtomically(serializer.save(snapshot)),
                 getLogger());
 
+        boolean firstRun = !file.exists();
         store = new PlayerStore(file, serializer, scheduler, getLogger());
         store.load();
+
+        if (firstRun) {
+            // plugins/Whois -> plugins -> server root
+            java.nio.file.Path serverRoot = getDataFolder().toPath().getParent().getParent();
+            new UserCacheImporter(serverRoot.resolve("usercache.json"), store, getLogger())
+                    .importIfPresent();
+        }
 
         OnlinePlayerLookup onlineLookup = new BukkitOnlinePlayerLookup();
         NameResolver resolver = new NameResolver(onlineLookup);
