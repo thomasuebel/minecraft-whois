@@ -157,6 +157,69 @@ class WhoisCommandTest {
     }
 
     @Test
+    void setWithUuidUpdatesGivenName() {
+        store.recordNick(UUID_A, "Steve");
+
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"set", UUID_A.toString(), "Max", "Mustermann"});
+
+        assertEquals("Max Mustermann", store.get(UUID_A).get().getGivenName());
+        String msg = capturedMessage();
+        assertTrue(msg.contains("Max Mustermann"));
+        assertTrue(msg.contains(UUID_A.toString()));
+    }
+
+    @Test
+    void setWithOnlineNameUpdatesGivenName() {
+        lookup.name = "Steve";
+        lookup.uuid = UUID_A;
+
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"set", "Steve", "Anna"});
+
+        assertEquals("Anna", store.get(UUID_A).get().getGivenName());
+    }
+
+    @Test
+    void setWithSingleWordGivenNameWorks() {
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"set", UUID_A.toString(), "Max"});
+
+        assertEquals("Max", store.get(UUID_A).get().getGivenName());
+    }
+
+    @Test
+    void setWithUnknownTargetShowsNotFound() {
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"set", "Unknown", "Max"});
+
+        assertTrue(capturedMessage().contains("Kein Datensatz"));
+    }
+
+    @Test
+    void setWithoutGivenNameShowsUsage() {
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"set", UUID_A.toString()});
+
+        assertTrue(capturedMessage().contains("/whois set"));
+    }
+
+    @Test
+    void setWithOnlyKeywordShowsUsage() {
+        command.onCommand(sender, bukkitCommand, "whois", new String[]{"set"});
+
+        assertTrue(capturedMessage().contains("/whois set"));
+    }
+
+    @Test
+    void setSubcommandIsCaseInsensitive() {
+        command.onCommand(sender, bukkitCommand, "whois",
+                new String[]{"SET", UUID_A.toString(), "Max"});
+
+        assertEquals("Max", store.get(UUID_A).get().getGivenName());
+    }
+
+    @Test
     void constructorRejectsNullArgs() {
         assertThrows(NullPointerException.class,
                 () -> new WhoisCommand(null, resolver, renderer));
