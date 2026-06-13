@@ -1,0 +1,13 @@
+name: Whois
+version: ${version}
+main: de.thomasuebel.mc.whois.WhoisPlugin
+api-version: '26.1.2'
+description: UUID-based given-names and nick history.
+commands:
+  whois:
+    description: Lookup or set the admin given-name and view aka history.
+    usage: /whois <name|uuid> | /whois set <name|uuid> <given-name...>
+permissions:
+  whois.admin:
+    description: Allows /whois lookup and set.
+    default: op
