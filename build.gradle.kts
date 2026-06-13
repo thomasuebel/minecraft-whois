@@ -34,6 +34,9 @@ tasks.named<ProcessResources>("processResources") {
 tasks.named<Test>("test") {
     useJUnitPlatform()
     finalizedBy(tasks.named("jacocoTestReport"))
+    // Mockito's Byte Buddy backend does not yet officially support Java 25;
+    // opt-in to experimental mode until Byte Buddy ships explicit Java 25 support.
+    systemProperty("net.bytebuddy.experimental", "true")
     testLogging {
         events("passed", "skipped", "failed")
     }
