@@ -125,6 +125,21 @@ class UserCacheImporterTest {
     }
 
     @Test
+    void importsRealPaperFormatWithUuidBeforeName(@TempDir Path dir) throws Exception {
+        // Verbatim slice of an actual Paper usercache.json: uuid is the first
+        // field, name follows.
+        Path usercache = dir.resolve("usercache.json");
+        Files.writeString(usercache,
+                "[{\"uuid\":\"069a79f4-44e9-4726-a5be-fca90e38aaf5\",\"name\":\"SpiderKrebs\",\"expiresOn\":\"2026-07-13 18:26:29 +0000\"}]");
+
+        PlayerStore store = buildStore(dir);
+        UserCacheImporter importer = new UserCacheImporter(usercache, store, logger);
+
+        assertEquals(1, importer.importIfPresent());
+        assertEquals(List.of("SpiderKrebs"), store.get(UUID_A).get().getAka());
+    }
+
+    @Test
     void whitespaceVariationsParsed(@TempDir Path dir) throws Exception {
         Path usercache = dir.resolve("usercache.json");
         Files.writeString(usercache,

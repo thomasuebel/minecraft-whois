@@ -1,5 +1,10 @@
 package de.thomasuebel.mc.whois.bootstrap;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import de.thomasuebel.mc.whois.model.PlayerStore;
 
 import java.io.IOException;
@@ -10,8 +15,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * V1.1: pre-seeds the player store from the vanilla server's usercache.json
@@ -21,10 +24,8 @@ import java.util.regex.Pattern;
  */
 public final class UserCacheImporter {
 
-    // Matches the {"name":"...","uuid":"...","expiresOn":"..."} entries the vanilla
-    // server writes. Tolerant to whitespace and to entry ordering with name first.
-    private static final Pattern ENTRY = Pattern.compile(
-            "\\{[^}]*?\"name\"\\s*:\\s*\"([^\"]+)\"[^}]*?\"uuid\"\\s*:\\s*\"([0-9a-fA-F\\-]+)\"[^}]*?\\}");
+    private static final String FIELD_NAME = "name";
+    private static final String FIELD_UUID = "uuid";
 
     private final Path usercacheJson;
     private final PlayerStore store;
@@ -38,6 +39,7 @@ public final class UserCacheImporter {
 
     public int importIfPresent() {
         if (!Files.exists(usercacheJson)) {
+            logger.info("usercache.json not found at " + usercacheJson + "; skipping bootstrap import");
             return 0;
         }
         String json;
@@ -47,21 +49,42 @@ public final class UserCacheImporter {
             logger.log(Level.WARNING, "Could not read " + usercacheJson, ex);
             return 0;
         }
+
+        JsonArray array;
+        try {
+            array = JsonParser.parseString(json).getAsJsonArray();
+        } catch (JsonSyntaxException | IllegalStateException ex) {
+            logger.log(Level.WARNING, "usercache.json is not a JSON array: " + usercacheJson, ex);
+            return 0;
+        }
+
+        int candidates = 0;
         int imported = 0;
-        Matcher matcher = ENTRY.matcher(json);
-        while (matcher.find()) {
-            String name = matcher.group(1);
-            UUID uuid = tryParseUuid(matcher.group(2));
-            if (uuid == null) {
+        int skipped = 0;
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                skipped++;
                 continue;
             }
+            JsonObject obj = element.getAsJsonObject();
+            if (!obj.has(FIELD_NAME) || !obj.has(FIELD_UUID)) {
+                skipped++;
+                continue;
+            }
+            String name = obj.get(FIELD_NAME).getAsString();
+            UUID uuid = tryParseUuid(obj.get(FIELD_UUID).getAsString());
+            if (uuid == null) {
+                skipped++;
+                continue;
+            }
+            candidates++;
             if (store.recordNick(uuid, name)) {
                 imported++;
             }
         }
-        if (imported > 0) {
-            logger.info("Imported " + imported + " entries from usercache.json");
-        }
+        logger.info(String.format(
+                "usercache.json bootstrap: %d candidates, %d new, %d skipped (from %s)",
+                candidates, imported, skipped, usercacheJson));
         return imported;
     }
 
