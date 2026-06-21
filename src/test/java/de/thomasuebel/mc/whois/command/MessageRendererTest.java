@@ -22,31 +22,56 @@ class MessageRendererTest {
     }
 
     @Test
-    void lookupShowsUuidGivenNameAndAka() {
+    void lookupWithGivenNameRendersIsLine() {
         PlayerRecord record = new PlayerRecord("Max Mustermann", List.of("Steve", "Bob"));
-        String text = plain(renderer.lookup(UUID_A, record));
+        String text = plain(renderer.lookup("Steve", UUID_A, record));
 
-        assertTrue(text.contains("UUID: 069a79f4-44e9-4726-a5be-fca90e38aaf5"));
-        assertTrue(text.contains("given-name: Max Mustermann"));
-        assertTrue(text.contains("aka:"));
-        assertTrue(text.contains("Steve"));
-        assertTrue(text.contains("Bob"));
+        assertEquals("Steve is Max Mustermann\nSteve is also known as Bob", text);
     }
 
     @Test
-    void lookupWithoutGivenNameShowsPlaceholder() {
+    void lookupWithoutGivenNameUsesUuidWithPeriod() {
         PlayerRecord record = new PlayerRecord(null, List.of("Steve"));
-        String text = plain(renderer.lookup(UUID_A, record));
+        String text = plain(renderer.lookup("Steve", UUID_A, record));
 
-        assertTrue(text.contains("given-name: — nicht gesetzt"));
+        assertEquals("Steve is 069a79f4-44e9-4726-a5be-fca90e38aaf5.", text);
     }
 
     @Test
-    void lookupWithEmptyAkaShowsDash() {
+    void lookupWithoutAkasRendersOnlyIsLine() {
         PlayerRecord record = new PlayerRecord("Max", List.of());
-        String text = plain(renderer.lookup(UUID_A, record));
+        String text = plain(renderer.lookup("Steve", UUID_A, record));
 
-        assertTrue(text.contains("aka: —"));
+        assertEquals("Steve is Max", text);
+    }
+
+    @Test
+    void lookupChunksAkasIntoLinesOfThree() {
+        PlayerRecord record = new PlayerRecord("Max",
+                List.of("Bob", "Joe", "Alex", "Jane", "Mike", "Sam", "Lee"));
+        String text = plain(renderer.lookup("Steve", UUID_A, record));
+
+        assertEquals("Steve is Max\n"
+                + "Steve is also known as Bob, Joe, Alex\n"
+                + "Steve is also known as Jane, Mike, Sam\n"
+                + "Steve is also known as Lee", text);
+    }
+
+    @Test
+    void lookupExcludesSearchedNameFromAkasCaseInsensitive() {
+        PlayerRecord record = new PlayerRecord("Max", List.of("Steve", "Bob"));
+        String text = plain(renderer.lookup("steve", UUID_A, record));
+
+        assertEquals("steve is Max\nsteve is also known as Bob", text);
+    }
+
+    @Test
+    void lookupByUuidWithoutGivenNameRepeatsUuid() {
+        PlayerRecord record = new PlayerRecord(null, List.of("Steve"));
+        String text = plain(renderer.lookup(UUID_A.toString(), UUID_A, record));
+
+        assertEquals(UUID_A + " is " + UUID_A + ".\n"
+                + UUID_A + " is also known as Steve", text);
     }
 
     @Test

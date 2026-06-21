@@ -105,16 +105,14 @@ class WhoisCommandTest {
     @Test
     void lookupByOnlineNameRendersRecord() {
         store.recordNick(UUID_A, "Steve");
+        store.recordNick(UUID_A, "Bob");
         store.setGivenName(UUID_A, "Max");
         lookup.name = "Steve";
         lookup.uuid = UUID_A;
 
         command.onCommand(sender, bukkitCommand, "whois", new String[]{"Steve"});
 
-        String msg = capturedMessage();
-        assertTrue(msg.contains(UUID_A.toString()));
-        assertTrue(msg.contains("Max"));
-        assertTrue(msg.contains("Steve"));
+        assertEquals("Steve is Max\nSteve is also known as Bob", capturedMessage());
     }
 
     @Test
@@ -123,10 +121,8 @@ class WhoisCommandTest {
 
         command.onCommand(sender, bukkitCommand, "whois", new String[]{UUID_A.toString()});
 
-        String msg = capturedMessage();
-        assertTrue(msg.contains(UUID_A.toString()));
-        assertTrue(msg.contains("Steve"));
-        assertTrue(msg.contains("— nicht gesetzt"));
+        assertEquals(UUID_A + " is " + UUID_A + ".\n"
+                + UUID_A + " is also known as Steve", capturedMessage());
     }
 
     @Test

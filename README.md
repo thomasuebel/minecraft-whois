@@ -68,7 +68,11 @@ sieht weder Daten noch Online-Namen in der Auto-Completion.
   eindeutig).
 - `<uuid>` funktioniert immer, **mit oder ohne Bindestriche**, auch für offline
   oder gebannte Spieler.
-- Ausgabe: UUID, given-name (oder „— nicht gesetzt"), vollständige `aka`-Liste.
+- Ausgabe als natürliche Sätze:
+  - `<arg> is <given-name>` wenn ein given-name gesetzt ist, sonst `<arg> is <uuid>.`
+  - Danach `<arg> is also known as a, b, c` — bis zu drei Aliase pro Zeile,
+    wiederholt bis alle weiteren Aliase gelistet sind. Der Such-Name selbst
+    erscheint in der Alias-Auflistung nicht.
 
 #### Klarnamen setzen
 

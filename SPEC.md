@@ -74,7 +74,7 @@ Hinweis: Vergleich auf den vom Client gemeldeten Namen. Dedup case-insensitiv, g
 
 ## 8. Commands
 
-1. `/whois <name|uuid>` — Lookup. Auflösung lokal (siehe 9). Ausgabe: UUID, given-name (oder „— nicht gesetzt") und die `aka`-Liste (reine Namen).
+1. `/whois <name|uuid>` — Lookup. Auflösung lokal (siehe 9). Ausgabe als natürliche Sätze: Zeile 1 ist `<arg> is <given-name>` bzw. `<arg> is <uuid>.` wenn kein given-name gesetzt ist. Danach folgt — sofern weitere Aliase bekannt sind — eine oder mehrere Zeilen `<arg> is also known as a, b, c` mit bis zu drei Aliasen pro Zeile. Der Such-Name wird in der Alias-Auflistung ausgespart.
 2. `/whois set <name|uuid> <given-name...>` — given-name setzen/ändern. `<given-name...>` ist der Rest der Zeile (darf Leerzeichen enthalten). Auflösung per Name funktioniert nur für aktuell online Spieler; sonst die UUID angeben.
 3. Tab-Completion für das Argument aus Online-Spielern (nice-to-have).
 
