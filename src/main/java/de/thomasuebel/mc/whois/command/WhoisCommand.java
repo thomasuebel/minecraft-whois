@@ -105,7 +105,7 @@ public final class WhoisCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(renderer.notFound(arg));
             return true;
         }
-        sender.sendMessage(renderer.lookup(uuid.get(), record.get()));
+        sender.sendMessage(renderer.lookup(arg, uuid.get(), record.get()));
         return true;
     }
 }
